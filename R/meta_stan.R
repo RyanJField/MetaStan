@@ -27,6 +27,8 @@
 #' model (Simmonds and Higgins, 2014).
 #' @param likelihood A string specifying the likelihood function defining the statistical
 #' model. Options include  `normal`, `binomial`, and `Poisson`.
+#' @param transformation A string specifying the type of transformation used for
+#' binomaial likelihood. Options include `none` (default), `relative_risk`, and `risk_difference`.
 #' @param re A string specifying whether random-effects are included to the model. When `FALSE`, the
 #' model corresponds to a fixed-effects model. The default is `TRUE`.
 #' @param ncp A string specifying whether to use a non-centered parametrization.
@@ -97,6 +99,7 @@
 #'
 meta_stan = function(data = NULL,
                      likelihood = NULL,
+                     transformation = "none",
                      mu_prior = c(0, 10),
                      theta_prior = NULL,
                      tau_prior = 0.5,
@@ -123,6 +126,18 @@ meta_stan = function(data = NULL,
     stop("Function argument \"likelihood\" must be equal to \"binomial\" or \"normal\" or \"poisson\"!!!")
   }
 
+  ################ check transformation used
+  if (likelihood == "binomial") {
+    if (transformation %in% c("none", "relative_risk", "risk_difference") == FALSE) {
+      stop("Function argument \"transformation\" must be equal to \"none\" or \"relative_risk\" or \"risk_difference\"!!!")
+    } else if (transformation != "none") {
+      stop("\"transformation\" is only valid for \"binomial\" likelihood !!!")
+    }
+  }
+
+  if (transformation != "none" && param != "Smith"){
+    stop("\"transformation\" is only valid for \"Smith\" parameterization !!!")
+  }
 
   ################ check prior for treatment effect parameter
   if(is.null(delta) == TRUE & is.null(theta_prior) == TRUE){
@@ -155,6 +170,8 @@ meta_stan = function(data = NULL,
   if(likelihood == "normal")   { link = 1 }
   if(likelihood == "binomial") { link = 2 }
   if(likelihood == "poisson")  { link = 3 }
+  if(likelihood == "binomial" && transformation == "relative_risk")  { link = 4 }
+  if(likelihood == "binomial" && transformation == "risk_difference")  { link = 5 }
 
 
   ################ check data
