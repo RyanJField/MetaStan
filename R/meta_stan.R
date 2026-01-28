@@ -130,9 +130,8 @@ meta_stan = function(data = NULL,
   if (likelihood == "binomial") {
     if (transformation %in% c("none", "relative_risk", "risk_difference") == FALSE) {
       stop("Function argument \"transformation\" must be equal to \"none\" or \"relative_risk\" or \"risk_difference\"!!!")
-    } else if (transformation != "none") {
-      stop("\"transformation\" is only valid for \"binomial\" likelihood !!!")
-    }
+  } else if (transformation != "none") {
+    stop("\"transformation\" is only valid for \"binomial\" likelihood !!!")
   }
 
   if (transformation != "none" && param != "Smith"){
