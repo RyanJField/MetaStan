@@ -73,22 +73,7 @@ transformed parameters {
   vector[max(st)] temp;
   vector[max(st)] beta_cov;
 
-  vector[Nobs] p; // event probabilities
-
-  for (i in 1:Nobs) {
-    if (link == 2) {
-      // logit link (OR)
-      p[i] = inv_logit(d[i]);
-    }
-    if (link == 4) {
-      // log link (RR)
-      p[i] = exp(d[i]);
-    }
-      if (link == 5) {
-      // identity link (RD)
-      p[i] = d[i];
-    }
-  }
+  vector[Nobs] p; // event probabilities (binomial links only)
 
   if(mreg) {
     for(i in 1:Nobs)
@@ -146,6 +131,23 @@ transformed parameters {
       }
 }
 
+  // event probabilities, computed once d is defined
+  for (i in 1:Nobs) {
+    if (link == 2) {
+      // logit link (OR)
+      p[i] = inv_logit(d[i]);
+    } else if (link == 4) {
+      // log link (RR)
+      p[i] = exp(d[i]);
+    } else if (link == 5) {
+      // identity link (RD)
+      p[i] = d[i];
+    } else {
+      // not used for normal or poisson likelihoods
+      p[i] = 0;
+    }
+  }
+
 }
 
 model {
@@ -171,16 +173,6 @@ model {
   }
 
   if(mreg)  beta[1] ~ normal(beta_prior[1], beta_prior[2]);
-
-  if (link == 4) {
-    // RR: probabilities must be <= 1
-    p ~ uniform(0, 1);
-  }
-
-  if (link == 5) {
-    // RD: identity link must stay in (0,1)
-    p ~ uniform(0, 1);
-  }
 
   // likelihood
   if (link == 1) {

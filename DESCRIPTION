@@ -1,5 +1,5 @@
 Package: MetaStan
-Version: 1.0.0
+Version: 1.1.0
 Title: Bayesian Meta-Analysis via 'Stan'
 Description: Performs Bayesian meta-analysis, meta-regression and model-based meta-analysis 
              using 'Stan'. Includes binomial-normal hierarchical models and option to use 
@@ -13,7 +13,7 @@ Authors@R: c(person("Burak Kuersad", "Guenhan", email="burakgunhan@gmail.com",
              tools/make_cpp.R, R/stanmodels.R"))
 License: GPL (>=3)
 Encoding: UTF-8
-Date: 2021-12-23
+Date: 2026-10-13
 LazyData: true
 ByteCompile: true
 Depends: R (>= 3.5.0)

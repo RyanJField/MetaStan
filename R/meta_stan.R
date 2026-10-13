@@ -28,7 +28,9 @@
 #' @param likelihood A string specifying the likelihood function defining the statistical
 #' model. Options include  `normal`, `binomial`, and `Poisson`.
 #' @param transformation A string specifying the type of transformation used for
-#' binomaial likelihood. Options include `none` (default), `relative_risk`, and `risk_difference`.
+#' binomial likelihood. Options include `none` (default, log odds ratio), `relative_risk` (log relative risk),
+#' and `risk_difference` (risk difference). With `risk_difference`, `mu_prior` and `theta_prior` are on the
+#' probability scale and `delta` cannot be used.
 #' @param re A string specifying whether random-effects are included to the model. When `FALSE`, the
 #' model corresponds to a fixed-effects model. The default is `TRUE`.
 #' @param ncp A string specifying whether to use a non-centered parametrization.
@@ -152,6 +154,10 @@ meta_stan = function(data = NULL,
     stop("Function argument \"cov\" argument must be specified, when \"mreg\" is TRUE !!!")
   }
 
+  if(is.null(delta) == FALSE & transformation == "risk_difference"){
+    stop("\"delta\" assumes a ratio scale and cannot be used with \"risk_difference\"; specify \"theta_prior\" instead !!!")
+  }
+
   ## Calculate standard deviation of theta_prior from delta
   if(is.null(delta) == FALSE){
     theta_prior[1] = 0
@@ -242,15 +248,36 @@ meta_stan = function(data = NULL,
                   ncov = ncov)
 
 
+  ## Stan's default random inits rarely give valid probabilities under the
+  ## log (RR) and identity (RD) links, so start every arm at the pooled risk
+  init = "random"
+  if (link %in% c(4, 5)) {
+    p_pooled = (sum(r) + 0.5) / (sum(n) + 1)
+    init = function() {
+      inits = list(mu = rep(if (link == 4) log(p_pooled) else p_pooled, Nobs),
+                   theta = 0)
+      if (re == 1) {
+        inits$u = array(0, dim = c(1, Nobs))
+        inits$tau = array(0.1, dim = 1)
+      }
+      if (mreg == 1) {
+        inits$beta = array(0, dim = c(1, ncov))
+      }
+      inits
+    }
+  }
+
   if (param == "Smith") {
   ## Fitting the model
-  fit = rstan::sampling(stanmodels$SMA,
-                        data = stanDat,
-                        chains = chains,
-                        iter = iter,
-                        warmup = warmup,
-                        control = list(adapt_delta = adapt_delta),
-                        ...)
+  sampling_args = list(stanmodels$SMA,
+                       data = stanDat,
+                       chains = chains,
+                       iter = iter,
+                       warmup = warmup,
+                       control = list(adapt_delta = adapt_delta),
+                       ...)
+  if (is.null(sampling_args$init)) sampling_args$init = init
+  fit = do.call(rstan::sampling, sampling_args)
   }
 
   if (param == "Higgins") {
@@ -293,7 +320,9 @@ meta_stan = function(data = NULL,
              Rhat.max = Rhat.max,
              N_EFF.min = N_EFF.min,
              interval.type = interval.type,
-             tau_prior_dist = tau_prior_dist)
+             tau_prior_dist = tau_prior_dist,
+             likelihood = likelihood,
+             transformation = transformation)
 
   class(out) <- "meta_stan"
 
